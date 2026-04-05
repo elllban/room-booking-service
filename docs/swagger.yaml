@@ -1,0 +1,363 @@
+basePath: /
+definitions:
+  domain.CreateBookingRequest:
+    properties:
+      createConferenceLink:
+        type: boolean
+      slotId:
+        type: string
+    type: object
+  domain.CreateRoomRequest:
+    properties:
+      capacity:
+        type: integer
+      description:
+        type: string
+      name:
+        type: string
+    type: object
+  domain.CreateScheduleRequest:
+    properties:
+      daysOfWeek:
+        items:
+          type: integer
+        type: array
+      endTime:
+        type: string
+      startTime:
+        type: string
+    type: object
+  domain.DummyLoginRequest:
+    properties:
+      role:
+        type: string
+    type: object
+  domain.ErrorResponse:
+    properties:
+      error:
+        properties:
+          code:
+            type: string
+          message:
+            type: string
+        type: object
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: Сервис бронирования переговорок
+  title: Room Booking Service API
+  version: "1.0"
+paths:
+  /_info:
+    get:
+      description: Всегда возвращает 200 OK
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+      tags:
+      - Health
+  /bookings/{bookingId}/cancel:
+    post:
+      description: Отменяет бронь (только свою, только user)
+      parameters:
+      - description: ID брони
+        in: path
+        name: bookingId
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      tags:
+      - Bookings
+  /bookings/create:
+    post:
+      description: Создаёт бронь на слот (только user)
+      parameters:
+      - description: Данные брони
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateBookingRequest'
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      tags:
+      - Bookings
+  /bookings/list:
+    get:
+      description: Возвращает список всех броней с пагинацией (только admin)
+      parameters:
+      - default: 1
+        description: Номер страницы
+        in: query
+        name: page
+        type: integer
+      - default: 20
+        description: Размер страницы
+        in: query
+        maximum: 100
+        name: pageSize
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      tags:
+      - Bookings
+  /bookings/my:
+    get:
+      description: Возвращает список броней текущего пользователя (только user)
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      tags:
+      - Bookings
+  /dummyLogin:
+    post:
+      description: Возвращает JWT токен для указанной роли (admin/user)
+      parameters:
+      - description: Роль пользователя
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.DummyLoginRequest'
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties:
+              type: string
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+      tags:
+      - Auth
+  /rooms/{roomId}/schedule/create:
+    post:
+      description: Создаёт расписание для переговорки (только admin, один раз)
+      parameters:
+      - description: ID переговорки
+        in: path
+        name: roomId
+        required: true
+        type: string
+      - description: Данные расписания
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateScheduleRequest'
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      tags:
+      - Schedules
+  /rooms/{roomId}/slots/list:
+    get:
+      description: Возвращает список свободных слотов для переговорки на дату
+      parameters:
+      - description: ID переговорки
+        in: path
+        name: roomId
+        required: true
+        type: string
+      - description: Дата в формате YYYY-MM-DD
+        in: query
+        name: date
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      tags:
+      - Slots
+  /rooms/create:
+    post:
+      description: Создаёт новую переговорку (только admin)
+      parameters:
+      - description: Данные переговорки
+        in: body
+        name: request
+        required: true
+        schema:
+          $ref: '#/definitions/domain.CreateRoomRequest'
+      responses:
+        "201":
+          description: Created
+          schema:
+            additionalProperties: true
+            type: object
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      tags:
+      - Rooms
+  /rooms/list:
+    get:
+      description: Возвращает список всех переговорок
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/domain.ErrorResponse'
+      security:
+      - BearerAuth: []
+      tags:
+      - Rooms
+securityDefinitions:
+  BearerAuth:
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"
